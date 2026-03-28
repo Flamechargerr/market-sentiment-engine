@@ -84,6 +84,7 @@ If you want to present this to a recruiter, use this order:
 5. Click a topic chip to focus the view on one market symbol
 6. Open `Export JSON` to show that the app exposes a real API
 7. Load the health panel and explain the storage layer and runtime status
+8. Point out the history trend strip and note that the page auto-refreshes while open
 
 ## Quick interview summary
 

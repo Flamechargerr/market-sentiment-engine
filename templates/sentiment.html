@@ -179,6 +179,39 @@
   .history-shell[hidden] {
     display: none !important;
   }
+  .trend-panel {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 16px;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .trend-bars {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(24px, 1fr));
+    align-items: end;
+    gap: 8px;
+    min-height: 120px;
+  }
+  .trend-bar {
+    min-height: 20px;
+    border-radius: 12px 12px 8px 8px;
+    background: linear-gradient(180deg, rgba(96, 165, 250, 0.92), rgba(37, 99, 235, 0.68));
+  }
+  .trend-bar.negative {
+    background: linear-gradient(180deg, rgba(251, 113, 133, 0.92), rgba(239, 68, 68, 0.68));
+  }
+  .trend-bar.neutral {
+    background: linear-gradient(180deg, rgba(148, 163, 184, 0.78), rgba(100, 116, 139, 0.68));
+  }
+  .trend-label {
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: center;
+  }
   .mini-note {
     color: var(--muted);
     font-size: 0.9rem;
@@ -286,11 +319,11 @@
         <h3 class="section-title" style="margin-bottom: 6px;">Topic controls</h3>
         <div class="mini-note">Click to include/exclude topics from the snapshot and refresh.</div>
       </div>
-        <div class="toolbar-actions">
-          <button class="button ghost" type="button" onclick="selectDefaultTopics()">Use defaults</button>
-          <button class="button" type="button" onclick="openSnapshotForSelection()">Open filtered JSON</button>
-          <button class="button subtle" type="button" onclick="refreshSnapshot()">Sync now</button>
-        </div>
+      <div class="toolbar-actions">
+        <button class="button ghost" type="button" onclick="selectDefaultTopics()">Use defaults</button>
+        <button class="button" type="button" onclick="openSnapshotForSelection()">Open filtered JSON</button>
+        <button class="button subtle" type="button" onclick="refreshSnapshot()">Sync now</button>
+      </div>
       </div>
     <div class="divider" style="margin: 14px 0;"></div>
     <div class="chips" id="topic-chips">
@@ -442,6 +475,31 @@
       </div>
     </div>
     <div class="divider" style="margin: 14px 0;"></div>
+    <div class="trend-panel">
+      <div class="toolbar">
+        <div>
+          <strong>Trend overview</strong>
+          <div class="mini-note">A compact read on recent snapshot scores.</div>
+        </div>
+        <div class="mini-note">Auto-refreshes while the page stays open.</div>
+      </div>
+      <div class="trend-bars">
+        {% for row in history or [] %}
+          {% set magnitude = ((row.score or 0.0) | abs) %}
+          {% set height = 20 + (magnitude * 100) %}
+          <div>
+            <div
+              class="trend-bar {% if row.score < 0 %}negative{% elif row.score > 0.15 %}positive{% else %}neutral{% endif %}"
+              style="height: {{ height|round(0) }}px;"
+              title="{{ row.topic }} · {{ row.overall_label or row.label }} · {{ '%.3f'|format(row.score or 0.0) }}">
+            </div>
+            <div class="trend-label">{{ row.topic }}</div>
+          </div>
+        {% else %}
+          <div class="empty-state">No historical trend data yet. Run a refresh to populate this view.</div>
+        {% endfor %}
+      </div>
+    </div>
     <table class="table content-table">
       <thead>
         <tr>
@@ -478,6 +536,7 @@
 <script>
 let selectedTopics = new Set({{ selected_topics | tojson }});
 const defaultTopics = {{ default_topics | tojson }};
+let autoRefreshTimer = null;
 
 function currentTopicList() {
   return Array.from(selectedTopics);
@@ -576,6 +635,15 @@ function toggleHistory() {
   }
 }
 
+function scheduleAutoRefresh() {
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer);
+  }
+  autoRefreshTimer = setInterval(() => {
+    refreshSnapshot(false);
+  }, 60000);
+}
+
 function scrollToSection(id) {
   const section = document.getElementById(id);
   if (section) {
@@ -584,5 +652,6 @@ function scrollToSection(id) {
 }
 
 syncTopicChips();
+scheduleAutoRefresh();
 </script>
 {% endblock %}
