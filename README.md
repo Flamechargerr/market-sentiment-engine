@@ -4,6 +4,16 @@ An end-to-end market sentiment analytics app that ingests public finance headlin
 
 This repo started as a feature prototype and was refactored into a standalone project so it can be shown, tested, and deployed independently.
 
+## Why this exists
+
+The goal is to demonstrate a complete, explainable product:
+
+- a data ingestion pipeline
+- a scoring engine
+- a persistence layer
+- a demo-friendly dashboard
+- an API that another service can consume
+
 ## What problem it solves
 
 Most “sentiment” demos stop at a chart or a single score. This project goes further:
@@ -74,6 +84,10 @@ If you want to present this to a recruiter, use this order:
 5. Click a topic chip to focus the view on one market symbol
 6. Open `Export JSON` to show that the app exposes a real API
 7. Load the health panel and explain the storage layer and runtime status
+
+## Quick interview summary
+
+> I built a standalone market sentiment engine that ingests public finance headlines, scores them with NLP, stores snapshots in SQLite, and exposes the result through a dashboard and API. The project is designed to show I can build a real data product end to end, not just a script.
 
 ## How to explain it to a recruiter
 
