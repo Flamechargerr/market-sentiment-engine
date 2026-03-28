@@ -5,6 +5,9 @@ PYTHON ?= python3
 run:
 	$(PYTHON) app.py
 
+serve:
+	$(PYTHON) -m gunicorn wsgi:app
+
 test:
 	$(PYTHON) -m pytest -q
 
