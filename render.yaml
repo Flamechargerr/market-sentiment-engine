@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: market-sentiment-engine
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:app
+    plan: free
+    autoDeploy: true

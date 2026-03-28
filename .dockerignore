@@ -1,0 +1,7 @@
+__pycache__/
+.pytest_cache/
+.git/
+.venv/
+output/
+*.db
+*.sqlite3

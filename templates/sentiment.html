@@ -1,0 +1,587 @@
+{% extends "base.html" %}
+
+{% block title %}Market Sentiment Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .button {
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text);
+    border-radius: 14px;
+    padding: 10px 14px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+  .button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(96, 165, 250, 0.35);
+  }
+  .button.primary {
+    background: linear-gradient(135deg, #2563eb, #0f766e);
+    border-color: transparent;
+  }
+  .button.ghost {
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .button.subtle {
+    background: transparent;
+  }
+  .headline-layout {
+    display: grid;
+    grid-template-columns: 1.4fr 0.9fr;
+    gap: 18px;
+  }
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+  }
+  .metric-card {
+    padding: 16px;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    background: rgba(2, 6, 23, 0.36);
+  }
+  .metric-card .label {
+    color: var(--muted);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .metric-card .value {
+    font-size: 2rem;
+    line-height: 1;
+    margin-top: 8px;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+  }
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .status-card {
+    padding: 16px;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .status-label {
+    color: var(--muted);
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 6px;
+  }
+  .status-value {
+    font-size: 0.95rem;
+    line-height: 1.45;
+    word-break: break-word;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .chip {
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .chip.active {
+    background: rgba(37, 99, 235, 0.18);
+    border-color: rgba(96, 165, 250, 0.45);
+    color: #dbeafe;
+  }
+  .topic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .topic-card {
+    padding: 16px;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    background: rgba(2, 6, 23, 0.26);
+  }
+  .topic-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: baseline;
+  }
+  .topic-name {
+    font-size: 1.02rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .topic-score {
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    margin-top: 10px;
+  }
+  .topic-meta {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .label-pill {
+    display: inline-flex;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .label-bullish {
+    background: rgba(16, 185, 129, 0.14);
+    color: #6ee7b7;
+  }
+  .label-bearish {
+    background: rgba(239, 68, 68, 0.14);
+    color: #fca5a5;
+  }
+  .label-neutral {
+    background: rgba(148, 163, 184, 0.14);
+    color: #cbd5e1;
+  }
+  .score-good { color: #86efac; }
+  .score-bad { color: #fda4af; }
+  .divider {
+    height: 1px;
+    width: 100%;
+    background: rgba(148, 163, 184, 0.16);
+    margin: 8px 0 0;
+  }
+  .history-shell[hidden] {
+    display: none !important;
+  }
+  .mini-note {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .content-table a {
+    color: #bfdbfe;
+  }
+  .sentiment-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.025);
+  }
+  .status-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    margin-right: 8px;
+    background: #94a3b8;
+  }
+  .status-dot.ok { background: #22c55e; }
+  .status-dot.degraded { background: #f59e0b; }
+  .status-dot.error { background: #ef4444; }
+  .empty-state {
+    padding: 18px;
+    border: 1px dashed rgba(148, 163, 184, 0.28);
+    border-radius: 18px;
+    color: var(--muted);
+    background: rgba(255, 255, 255, 0.02);
+  }
+  @media (max-width: 900px) {
+    .headline-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="grid">
+  <section class="card hero">
+    <div class="toolbar">
+      <div>
+        <div class="badge" style="margin-bottom: 12px;">Live sentiment prototype</div>
+        <h2>{{ snapshot.overall_label or "Neutral" }} market mood</h2>
+        <p>
+          Public RSS headlines are scored, stored in SQLite, and organized into a readable snapshot
+          so you can explain the product in a recruiter conversation without sounding like a gimmick.
+        </p>
+      </div>
+      <div class="toolbar-actions">
+        <button class="button primary" type="button" onclick="refreshSnapshot()">Refresh live</button>
+        <button class="button ghost" type="button" onclick="loadSnapshot()">Reload view</button>
+        <button class="button ghost" type="button" onclick="toggleHistory()">Toggle history</button>
+        <button class="button subtle" type="button" onclick="scrollToSection('health-section')">Health</button>
+        <a class="button subtle" id="json-link" href="/api/sentiment/snapshot" target="_blank" rel="noreferrer">JSON</a>
+      </div>
+    </div>
+
+    <div class="headline-layout">
+      <div>
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="label">Overall score</div>
+            <div class="value {% if (snapshot.overall_score or 0) >= 0.2 %}score-good{% elif (snapshot.overall_score or 0) <= -0.2 %}score-bad{% endif %}">
+              {{ "%.3f"|format(snapshot.overall_score or 0.0) }}
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Articles</div>
+            <div class="value">{{ snapshot.article_count or 0 }}</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Bullish</div>
+            <div class="value score-good">{{ snapshot.bullish_count or 0 }}</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Bearish</div>
+            <div class="value score-bad">{{ snapshot.bearish_count or 0 }}</div>
+          </div>
+        </div>
+        <div class="mini-note" style="margin-top: 12px;">
+          Last computed: <strong>{{ snapshot.as_of or snapshot.created_at or "N/A" }}</strong>
+          {% if health.snapshot_age_minutes is not none %} · Freshness: <strong>{{ health.snapshot_age_minutes }} min</strong>{% endif %}
+        </div>
+      </div>
+
+      <div class="status-card">
+        <div class="status-label">What this shows</div>
+        <div class="status-value">
+          A compact market-mood engine: live headlines in, lightweight scoring out, and a clean snapshot your recruiter can understand in seconds.
+        </div>
+        <div class="divider"></div>
+        <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 10px;">
+          <span class="label-pill {% if snapshot.overall_label == 'Bullish' %}label-bullish{% elif snapshot.overall_label == 'Bearish' %}label-bearish{% else %}label-neutral{% endif %}">
+            {{ snapshot.overall_label or "Neutral" }}
+          </span>
+          <span class="label-pill label-neutral">{{ snapshot.selected_topics|length if snapshot.selected_topics else 0 }} topics</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="controls-section">
+    <div class="toolbar">
+      <div>
+        <h3 class="section-title" style="margin-bottom: 6px;">Topic controls</h3>
+        <div class="mini-note">Click to include/exclude topics from the snapshot and refresh.</div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="button ghost" type="button" onclick="selectDefaultTopics()">Use defaults</button>
+        <button class="button" type="button" onclick="openSnapshotForSelection()">Open filtered JSON</button>
+      </div>
+    </div>
+    <div class="divider" style="margin: 14px 0;"></div>
+    <div class="chips" id="topic-chips">
+      {% for topic in available_topics or default_topics or [] %}
+        <button
+          type="button"
+          class="chip {% if topic in selected_topics %}active{% endif %}"
+          data-topic="{{ topic }}"
+          aria-pressed="{% if topic in selected_topics %}true{% else %}false{% endif %}"
+          onclick="toggleTopic(this)">
+          {{ topic }}
+        </button>
+      {% else %}
+        <div class="empty-state">No topics configured. Set <code>MARKET_SENTIMENT_TOPICS</code> in the environment.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="toolbar">
+      <div>
+        <h3 class="section-title" style="margin-bottom: 6px;">Health and status</h3>
+        <div class="mini-note">Useful for deployment checks, demos, and recruiter walkthroughs.</div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="button ghost" type="button" onclick="scrollToSection('history-section')">View history</button>
+        <button class="button subtle" type="button" onclick="refreshHealth()">Refresh health</button>
+      </div>
+    </div>
+    <div class="divider" style="margin: 14px 0;"></div>
+    <div class="status-grid" id="health-section">
+      <div class="status-card">
+        <div class="status-label">Engine</div>
+        <div class="status-value">
+          <span class="status-dot {% if health.status == 'error' %}error{% elif health.status in ['degraded', 'stale'] %}degraded{% else %}ok{% endif %}"></span>
+          {{ health.engine_name or "Unavailable" }}
+        </div>
+      </div>
+      <div class="status-card">
+        <div class="status-label">Database</div>
+        <div class="status-value">{{ health.database_path or "Not connected" }}</div>
+      </div>
+      <div class="status-card">
+        <div class="status-label">Last refresh</div>
+        <div class="status-value">{{ health.latest_snapshot_at or "No snapshot yet" }}</div>
+      </div>
+      <div class="status-card">
+        <div class="status-label">Run status</div>
+        <div class="status-value">{{ health.latest_run.status|upper if health.latest_run else (health.status|upper if health.status else "OK") }}</div>
+      </div>
+      <div class="status-card">
+        <div class="status-label">Default topics</div>
+        <div class="status-value">{{ health.default_topics|join(", ") }}</div>
+      </div>
+      <div class="status-card">
+        <div class="status-label">Store topics</div>
+        <div class="status-value">{{ health.tracked_topics|join(", ") if health.tracked_topics else "None yet" }}</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="toolbar">
+      <div>
+        <h3 class="section-title" style="margin-bottom: 6px;">Per-topic breakdown</h3>
+        <div class="mini-note">One card per topic with score, article count, and refresh diagnostics.</div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="button ghost" type="button" onclick="refreshSnapshot()">Refresh selected topics</button>
+      </div>
+    </div>
+    <div class="divider" style="margin: 14px 0;"></div>
+    <div class="topic-grid">
+      {% for card in snapshot.entities or [] %}
+        <article class="topic-card">
+          <div class="topic-head">
+            <div class="topic-name">{{ card.topic }}</div>
+            <span class="label-pill {% if card.label == 'Bullish' %}label-bullish{% elif card.label == 'Bearish' %}label-bearish{% else %}label-neutral{% endif %}">
+              {{ card.label }}
+            </span>
+          </div>
+          <div class="topic-score {% if card.score >= 0.2 %}score-good{% elif card.score <= -0.2 %}score-bad{% endif %}">
+            {{ "%.3f"|format(card.score or 0.0) }}
+          </div>
+          <div class="topic-meta">Articles: {{ card.item_count or 0 }} · Window: {{ card.window_hours or 24 }}h</div>
+          <div class="topic-meta">Computed: {{ card.computed_at or "N/A" }}</div>
+          <div class="topic-meta">Latest headline: {{ card.latest_headline or "N/A" }}</div>
+        </article>
+      {% else %}
+        <div class="empty-state">No topic snapshots yet. Hit refresh to populate live data.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="toolbar">
+      <div>
+        <h3 class="section-title" style="margin-bottom: 6px;">Recent headlines</h3>
+        <div class="mini-note">Latest fetched articles across the selected topics.</div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="button ghost" type="button" onclick="scrollToSection('controls-section')">Edit topics</button>
+      </div>
+    </div>
+    <div class="divider" style="margin: 14px 0;"></div>
+    <table class="table content-table sentiment-table">
+      <thead>
+        <tr>
+          <th>Topic</th>
+          <th>Headline</th>
+          <th>Source</th>
+          <th>Score</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for item in snapshot.get('items') or [] %}
+        <tr>
+          <td><strong>{{ item.topic }}</strong></td>
+          <td>
+            <a href="{{ item.url }}" target="_blank" rel="noreferrer">{{ item.title }}</a>
+            <div class="muted" style="margin-top: 4px;">{{ item.summary }}</div>
+          </td>
+          <td>{{ item.source }}</td>
+          <td>
+            <span class="{% if item.sentiment_score >= 0.2 %}score-good{% elif item.sentiment_score <= -0.2 %}score-bad{% endif %}">
+              {{ "%.2f"|format(item.sentiment_score or 0.0) }}
+            </span>
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="4">
+            <div class="empty-state">No headlines cached yet. Use the refresh button to pull live articles.</div>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card history-shell" id="history-section">
+    <div class="toolbar">
+      <div>
+        <h3 class="section-title" style="margin-bottom: 6px;">History</h3>
+        <div class="mini-note">Recent snapshot runs from SQLite for repeatable demos and trend checks.</div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="button subtle" type="button" onclick="scrollToSection('controls-section')">Back to topics</button>
+      </div>
+    </div>
+    <div class="divider" style="margin: 14px 0;"></div>
+    <table class="table content-table">
+      <thead>
+        <tr>
+          <th>Topic</th>
+          <th>Label</th>
+          <th>Score</th>
+          <th>Computed</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for row in history or [] %}
+        <tr>
+          <td>{{ row.topic }}</td>
+          <td>
+            <span class="label-pill {% if row.overall_label == 'Bullish' %}label-bullish{% elif row.overall_label == 'Bearish' %}label-bearish{% else %}label-neutral{% endif %}">
+              {{ row.overall_label or row.label }}
+            </span>
+          </td>
+          <td>{{ "%.3f"|format(row.score or 0.0) }}</td>
+          <td>{{ row.computed_at }}</td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="4">
+            <div class="empty-state">No history yet. Run the engine at least once to populate this view.</div>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+
+<script>
+let selectedTopics = new Set({{ selected_topics | tojson }});
+const defaultTopics = {{ default_topics | tojson }};
+
+function currentTopicList() {
+  return Array.from(selectedTopics);
+}
+
+function syncTopicChips() {
+  document.querySelectorAll(".chip").forEach((chip) => {
+    const topic = chip.dataset.topic;
+    const active = selectedTopics.has(topic);
+    chip.classList.toggle("active", active);
+    chip.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  const params = new URLSearchParams(window.location.search);
+  if (selectedTopics.size > 0) {
+    params.set("topics", currentTopicList().join(","));
+  } else {
+    params.delete("topics");
+  }
+  const jsonLink = document.getElementById("json-link");
+  if (jsonLink) {
+    const url = new URL("/api/sentiment/snapshot", window.location.origin);
+    if (selectedTopics.size > 0) {
+      url.searchParams.set("topics", currentTopicList().join(","));
+    }
+    jsonLink.href = url.pathname + url.search;
+  }
+  const nextUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+  window.history.replaceState({}, "", nextUrl);
+}
+
+function toggleTopic(button) {
+  const topic = button.dataset.topic;
+  if (!topic) return;
+  if (selectedTopics.has(topic)) {
+    selectedTopics.delete(topic);
+  } else {
+    selectedTopics.add(topic);
+  }
+  syncTopicChips();
+}
+
+function selectDefaultTopics() {
+  selectedTopics = new Set(defaultTopics);
+  syncTopicChips();
+}
+
+function openSnapshotForSelection() {
+  const url = new URL("/api/sentiment/snapshot", window.location.origin);
+  if (selectedTopics.size > 0) {
+    url.searchParams.set("topics", currentTopicList().join(","));
+  }
+  window.open(url.toString(), "_blank", "noopener,noreferrer");
+}
+
+async function refreshSnapshot() {
+  const response = await fetch("/api/sentiment/refresh", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      topics: currentTopicList(),
+      limit: 12,
+      window_hours: 24
+    })
+  });
+  if (!response.ok) return;
+  setTimeout(() => window.location.reload(), 1400);
+}
+
+async function refreshHealth() {
+  const url = new URL("/api/sentiment/health", window.location.origin);
+  if (selectedTopics.size > 0) {
+    url.searchParams.set("topics", currentTopicList().join(","));
+  }
+  const response = await fetch(url.toString());
+  if (!response.ok) return;
+  const health = await response.json();
+  const badge = document.querySelector(".status-pill");
+  if (badge) {
+    badge.textContent = `${health.engine_name || "Engine"} · ${health.status || "ok"}`;
+  }
+  window.location.reload();
+}
+
+async function loadSnapshot() {
+  const response = await fetch(`/api/sentiment/snapshot${topicsQuery()}`);
+  if (!response.ok) return;
+  window.location.reload();
+}
+
+function toggleHistory() {
+  const section = document.getElementById("history-section");
+  if (!section) return;
+  section.hidden = !section.hidden;
+  if (!section.hidden) {
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+function scrollToSection(id) {
+  const section = document.getElementById(id);
+  if (section) {
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+syncTopicChips();
+</script>
+{% endblock %}

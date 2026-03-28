@@ -1,0 +1,98 @@
+# Changelog
+
+## 2026-03-28
+
+- Extracted the sentiment engine into its own repository.
+- Added a production-ready dashboard layout.
+- Added deployment, demo, and API docs.
+- Added scripts for local running and snapshot export.
+- Clarified the health payload and production deployment settings.
+
+- History polish checkpoint 01.
+- History polish checkpoint 02.
+- History polish checkpoint 03.
+- History polish checkpoint 04.
+- History polish checkpoint 05.
+- History polish checkpoint 06.
+- History polish checkpoint 07.
+- History polish checkpoint 08.
+- History polish checkpoint 09.
+- History polish checkpoint 10.
+- History polish checkpoint 11.
+- History polish checkpoint 12.
+- History polish checkpoint 13.
+- History polish checkpoint 14.
+- History polish checkpoint 15.
+- History polish checkpoint 16.
+- History polish checkpoint 17.
+- History polish checkpoint 18.
+- History polish checkpoint 19.
+- History polish checkpoint 20.
+- History polish checkpoint 21.
+- History polish checkpoint 22.
+- History polish checkpoint 23.
+- History polish checkpoint 24.
+- History polish checkpoint 25.
+- History polish checkpoint 26.
+- History polish checkpoint 27.
+- History polish checkpoint 28.
+- History polish checkpoint 29.
+- History polish checkpoint 30.
+- History polish checkpoint 31.
+- History polish checkpoint 32.
+- History polish checkpoint 33.
+- History polish checkpoint 34.
+- History polish checkpoint 35.
+- History polish checkpoint 36.
+- History polish checkpoint 37.
+- History polish checkpoint 38.
+- History polish checkpoint 39.
+- History polish checkpoint 40.
+- History polish checkpoint 41.
+- History polish checkpoint 42.
+- History polish checkpoint 43.
+- History polish checkpoint 44.
+- History polish checkpoint 45.
+- History polish checkpoint 46.
+- History polish checkpoint 47.
+- History polish checkpoint 48.
+- History polish checkpoint 49.
+- History polish checkpoint 50.
+- History polish checkpoint 51.
+- History polish checkpoint 52.
+- History polish checkpoint 53.
+- History polish checkpoint 54.
+- History polish checkpoint 55.
+- History polish checkpoint 56.
+- History polish checkpoint 57.
+- History polish checkpoint 58.
+- History polish checkpoint 59.
+- History polish checkpoint 60.
+- History polish checkpoint 61.
+- History polish checkpoint 62.
+- History polish checkpoint 63.
+- History polish checkpoint 64.
+- History polish checkpoint 65.
+- History polish checkpoint 66.
+- History polish checkpoint 67.
+- History polish checkpoint 68.
+- History polish checkpoint 69.
+- History polish checkpoint 70.
+- History polish checkpoint 71.
+- History polish checkpoint 72.
+- History polish checkpoint 73.
+- History polish checkpoint 74.
+- History polish checkpoint 75.
+- History polish checkpoint 76.
+- History polish checkpoint 77.
+- History polish checkpoint 78.
+- History polish checkpoint 79.
+- History polish checkpoint 80.
+- History polish checkpoint 81.
+- History polish checkpoint 82.
+- History polish checkpoint 83.
+- History polish checkpoint 84.
+- History polish checkpoint 85.
+- History polish checkpoint 86.
+- History polish checkpoint 87.
+- History polish checkpoint 88.
