@@ -41,6 +41,8 @@ For each topic it:
 
 - Persistent storage instead of in-memory state
 - Separate engine, storage, and web layers
+- Snapshot-level governance diagnostics (source errors, deduplication ratio, ingestion counts)
+- Model-performance telemetry (confidence summaries and sentiment-class distribution)
 - Working controls for refresh, export, copy, filtering, and health visibility
 - API endpoints that can be consumed by a front-end or another service
 - Deterministic tests for the scoring and persistence logic

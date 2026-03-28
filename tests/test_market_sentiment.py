@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import json
+import statistics
 
 import pytest
 
@@ -85,10 +87,21 @@ def test_engine_refresh_persists_snapshot_and_items(tmp_path: Path):
     assert snap is not None
     assert snap["topic"] == "AAPL"
     assert -1.0 <= float(snap["score"]) <= 1.0
+    data = snap.get("data") or {}
+    governance = data.get("governance") or {}
+    model_metrics = data.get("model_metrics") or {}
+    assert governance["fetched_item_count"] == 3
+    assert governance["deduped_item_count"] == 3
+    assert governance["scored_item_count"] == 3
+    assert governance["inserted_item_count"] == 3
+    assert governance["missing_data"] is False
 
     since = datetime(2026, 3, 20, tzinfo=timezone.utc)
     items = store.get_recent_items("AAPL", since=since, limit=50)
     assert len(items) == 3
+    assert items
+    expected_avg_confidence = round(statistics.fmean(float(item["confidence"]) for item in items), 4)
+    assert model_metrics["average_confidence"] == pytest.approx(expected_avg_confidence)
     assert {i["url"] for i in items} == {
         "https://example.com/aapl-soar",
         "https://example.com/aapl-lawsuit",
@@ -114,3 +127,22 @@ def test_store_dedupes_on_repeat_refresh(tmp_path: Path):
     items = store.get_recent_items("AAPL", since=since, limit=50)
     assert len(items) == 3
 
+
+def test_refresh_logs_governance_run_stats(tmp_path: Path):
+    db_path = str(tmp_path / "sentiment.db")
+    store = SentimentStore(db_path=db_path)
+    engine = MarketSentimentEngine(store=store, sources=[GoogleNewsRssSource(session=FakeSession(SAMPLE_RSS))])
+
+    engine.refresh(["AAPL"], window_hours=24, max_items_per_topic=10)
+
+    row = store.fetch_one("SELECT stats_json FROM sentiment_runs ORDER BY id DESC LIMIT 1")
+    assert row is not None
+    stats = json.loads(row["stats_json"] or "{}")
+    assert stats["topics_requested"] == 1
+    assert stats["items_scored"] == 3
+    assert stats["items_inserted"] == 3
+    assert stats["topics_without_data"] == 0
+    items = store.get_recent_items("AAPL", since=datetime(2026, 3, 20, tzinfo=timezone.utc), limit=50)
+    assert items
+    expected_avg_confidence = round(statistics.fmean(float(item["confidence"]) for item in items), 4)
+    assert stats["average_model_confidence"] == pytest.approx(expected_avg_confidence)

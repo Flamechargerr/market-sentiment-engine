@@ -31,6 +31,15 @@ Returns engine and database status, including the latest snapshot metadata and h
 ## `GET /api/sentiment/export`
 Returns a JSON bundle of the snapshot, health, and history.
 
+Snapshot payloads include data-governance and model-metrics blocks under each topic's `data` object:
+
+- `data.governance` with ingestion quality diagnostics (`source_errors`, dedupe ratio, scored/inserted counts)
+- `data.model_metrics` with confidence summary (`average_confidence`, min/max) and class counts
+  - confidence summary fields are `null` when no items were scored for that topic
+
+Run metadata in `sentiment_runs.stats_json` stores reproducibility and quality counters for each refresh.
+- `average_model_confidence` is `null` when a run scores zero items
+
 Example response fields:
 
 - `status`

@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import math
 import re
+import statistics
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
@@ -24,6 +25,9 @@ import xml.etree.ElementTree as ET
 import requests
 
 from core.sentiment_store import SentimentItem, SentimentSnapshot, SentimentStore
+
+SENTIMENT_POSITIVE_THRESHOLD = 0.15
+SENTIMENT_NEGATIVE_THRESHOLD = -0.15
 
 
 def _utc_now() -> datetime:
@@ -463,6 +467,11 @@ class MarketSentimentEngine:
             return {}
 
         results: Dict[str, Dict[str, Any]] = {}
+        run_inserted_total = 0
+        run_scored_total = 0
+        run_error_total = 0
+        run_topics_without_data = 0
+        run_confidence_values: List[float] = []
 
         for topic in topics:
             fetched_at = _utc_now()
@@ -474,6 +483,7 @@ class MarketSentimentEngine:
                     source_items.extend(src.fetch(topic, limit=max_items_per_topic))
                 except Exception as e:
                     errors.append(f"{getattr(src, 'name', 'source')}: {e}")
+            run_error_total += len(errors)
 
             # Deduplicate by URL.
             seen = set()
@@ -484,6 +494,7 @@ class MarketSentimentEngine:
                     continue
                 seen.add(u)
                 deduped.append(it)
+            duplicate_count = len(source_items) - len(deduped)
 
             sentiment_items: List[SentimentItem] = []
             for it in deduped[:max_items_per_topic]:
@@ -504,10 +515,44 @@ class MarketSentimentEngine:
                         raw={"meta": meta, **(it.raw or {})},
                     )
                 )
+                run_confidence_values.append(float(confidence))
+
+            if not sentiment_items:
+                run_topics_without_data += 1
 
             inserted = self.store.upsert_items(sentiment_items)
+            run_inserted_total += inserted
+            run_scored_total += len(sentiment_items)
             snapshot = self.aggregator.aggregate(sentiment_items, window_hours=window_hours, now=_utc_now())
             # Ensure topic set (aggregate() uses items[0], but empty-case returns topic="").
+            score_values = [float(item.sentiment) for item in sentiment_items]
+            confidence_values = [float(item.confidence) for item in sentiment_items]
+            source_item_count = len(source_items)
+            deduped_item_count = len(deduped)
+            scored_item_count = len(sentiment_items)
+            positive_count = sum(1 for value in score_values if value > SENTIMENT_POSITIVE_THRESHOLD)
+            negative_count = sum(1 for value in score_values if value < SENTIMENT_NEGATIVE_THRESHOLD)
+            neutral_count = scored_item_count - positive_count - negative_count
+            average_confidence = round(statistics.fmean(confidence_values), 4) if confidence_values else None
+            governance = {
+                "source_count": len(self.sources),
+                "source_errors": len(errors),
+                "fetched_item_count": source_item_count,
+                "deduped_item_count": deduped_item_count,
+                "duplicate_item_count": duplicate_count,
+                "duplicate_ratio": round((duplicate_count / max(source_item_count, 1)), 4),
+                "scored_item_count": scored_item_count,
+                "inserted_item_count": inserted,
+                "missing_data": scored_item_count == 0,
+            }
+            model_metrics = {
+                "average_confidence": average_confidence,
+                "max_confidence": round(max(confidence_values), 4) if confidence_values else None,
+                "min_confidence": round(min(confidence_values), 4) if confidence_values else None,
+                "positive_item_count": positive_count,
+                "negative_item_count": negative_count,
+                "neutral_item_count": neutral_count,
+            }
             snapshot = SentimentSnapshot(
                 topic=topic,
                 score=snapshot.score,
@@ -522,6 +567,8 @@ class MarketSentimentEngine:
                     "source_count": len(self.sources),
                     "errors": errors,
                     "inserted": inserted,
+                    "governance": governance,
+                    "model_metrics": model_metrics,
                 },
             )
             self.store.save_snapshot(snapshot)
@@ -544,7 +591,16 @@ class MarketSentimentEngine:
             message="refresh complete",
             started_at=started,
             finished_at=_utc_now(),
-            stats={"topics": len(topics)},
+            stats={
+                "topics_requested": len(topics),
+                "topics_without_data": run_topics_without_data,
+                "items_scored": run_scored_total,
+                "items_inserted": run_inserted_total,
+                "source_error_count": run_error_total,
+                "average_model_confidence": (
+                    round(statistics.fmean(run_confidence_values), 4) if run_confidence_values else None
+                ),
+            },
         )
         return results
 
@@ -556,4 +612,3 @@ class MarketSentimentEngine:
         for topic in topics:
             out[topic] = self.store.get_latest_snapshot(topic) or {}
         return out
-
