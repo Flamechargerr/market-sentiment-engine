@@ -34,6 +34,8 @@ Suggested production settings:
 - `MARKET_SENTIMENT_TOPICS=SPY,NASDAQ,NIFTY,BTC`
 - `FLASK_DEBUG=0`
 
+For a demo deployment, use a persistent disk for the SQLite file and a scheduled refresh job if you want the dashboard to stay current without manual clicks.
+
 ## Notes
 
 - Keep `MARKET_SENTIMENT_DB_PATH` on persistent storage in production.
