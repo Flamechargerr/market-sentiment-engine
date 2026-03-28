@@ -286,11 +286,12 @@
         <h3 class="section-title" style="margin-bottom: 6px;">Topic controls</h3>
         <div class="mini-note">Click to include/exclude topics from the snapshot and refresh.</div>
       </div>
-      <div class="toolbar-actions">
-        <button class="button ghost" type="button" onclick="selectDefaultTopics()">Use defaults</button>
-        <button class="button" type="button" onclick="openSnapshotForSelection()">Open filtered JSON</button>
+        <div class="toolbar-actions">
+          <button class="button ghost" type="button" onclick="selectDefaultTopics()">Use defaults</button>
+          <button class="button" type="button" onclick="openSnapshotForSelection()">Open filtered JSON</button>
+          <button class="button subtle" type="button" onclick="refreshSnapshot()">Sync now</button>
+        </div>
       </div>
-    </div>
     <div class="divider" style="margin: 14px 0;"></div>
     <div class="chips" id="topic-chips">
       {% for topic in available_topics or default_topics or [] %}
