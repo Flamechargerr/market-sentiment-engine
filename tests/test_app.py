@@ -119,3 +119,6 @@ def test_endpoints(monkeypatch):
     assert client.get("/api/sentiment/export?topics=SPY").status_code == 200
     assert client.get("/api/sentiment/topics?topics=SPY").status_code == 200
     assert client.get("/api/health?topics=SPY").status_code == 200
+    health = client.get("/api/sentiment/health?topics=SPY").get_json()
+    assert health["docs"]["deployment"] == "/docs/deployment.md"
+    assert health["latest_snapshot_label"] == "Bullish"
