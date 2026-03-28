@@ -26,6 +26,9 @@ import requests
 
 from core.sentiment_store import SentimentItem, SentimentSnapshot, SentimentStore
 
+SENTIMENT_POSITIVE_THRESHOLD = 0.15
+SENTIMENT_NEGATIVE_THRESHOLD = -0.15
+
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
@@ -491,7 +494,7 @@ class MarketSentimentEngine:
                     continue
                 seen.add(u)
                 deduped.append(it)
-            duplicate_count = max(len(source_items) - len(deduped), 0)
+            duplicate_count = len(source_items) - len(deduped)
 
             sentiment_items: List[SentimentItem] = []
             for it in deduped[:max_items_per_topic]:
@@ -524,25 +527,28 @@ class MarketSentimentEngine:
             # Ensure topic set (aggregate() uses items[0], but empty-case returns topic="").
             score_values = [float(item.sentiment) for item in sentiment_items]
             confidence_values = [float(item.confidence) for item in sentiment_items]
-            positive_count = sum(1 for value in score_values if value > 0.15)
-            negative_count = sum(1 for value in score_values if value < -0.15)
-            neutral_count = max(len(score_values) - positive_count - negative_count, 0)
-            average_confidence = statistics.fmean(confidence_values) if confidence_values else 0.0
+            source_item_count = len(source_items)
+            deduped_item_count = len(deduped)
+            scored_item_count = len(sentiment_items)
+            positive_count = sum(1 for value in score_values if value > SENTIMENT_POSITIVE_THRESHOLD)
+            negative_count = sum(1 for value in score_values if value < SENTIMENT_NEGATIVE_THRESHOLD)
+            neutral_count = scored_item_count - positive_count - negative_count
+            average_confidence = round(statistics.fmean(confidence_values), 4) if confidence_values else None
             governance = {
                 "source_count": len(self.sources),
                 "source_errors": len(errors),
-                "fetched_item_count": len(source_items),
-                "deduped_item_count": len(deduped),
+                "fetched_item_count": source_item_count,
+                "deduped_item_count": deduped_item_count,
                 "duplicate_item_count": duplicate_count,
-                "duplicate_ratio": round((duplicate_count / max(len(source_items), 1)), 4),
-                "scored_item_count": len(sentiment_items),
+                "duplicate_ratio": round((duplicate_count / max(source_item_count, 1)), 4),
+                "scored_item_count": scored_item_count,
                 "inserted_item_count": inserted,
-                "missing_data": len(sentiment_items) == 0,
+                "missing_data": scored_item_count == 0,
             }
             model_metrics = {
-                "average_confidence": round(average_confidence, 4),
-                "max_confidence": round(max(confidence_values), 4) if confidence_values else 0.0,
-                "min_confidence": round(min(confidence_values), 4) if confidence_values else 0.0,
+                "average_confidence": average_confidence,
+                "max_confidence": round(max(confidence_values), 4) if confidence_values else None,
+                "min_confidence": round(min(confidence_values), 4) if confidence_values else None,
                 "positive_item_count": positive_count,
                 "negative_item_count": negative_count,
                 "neutral_item_count": neutral_count,
@@ -592,7 +598,7 @@ class MarketSentimentEngine:
                 "items_inserted": run_inserted_total,
                 "source_error_count": run_error_total,
                 "average_model_confidence": (
-                    round(statistics.fmean(run_confidence_values), 4) if run_confidence_values else 0.0
+                    round(statistics.fmean(run_confidence_values), 4) if run_confidence_values else None
                 ),
             },
         )

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import json
+import statistics
 
 import pytest
 
@@ -86,18 +87,21 @@ def test_engine_refresh_persists_snapshot_and_items(tmp_path: Path):
     assert snap is not None
     assert snap["topic"] == "AAPL"
     assert -1.0 <= float(snap["score"]) <= 1.0
-    governance = (snap.get("data") or {}).get("governance") or {}
-    model_metrics = (snap.get("data") or {}).get("model_metrics") or {}
+    data = snap.get("data") or {}
+    governance = data.get("governance") or {}
+    model_metrics = data.get("model_metrics") or {}
     assert governance["fetched_item_count"] == 3
     assert governance["deduped_item_count"] == 3
     assert governance["scored_item_count"] == 3
     assert governance["inserted_item_count"] == 3
     assert governance["missing_data"] is False
-    assert 0.0 <= model_metrics["average_confidence"] <= 1.0
 
     since = datetime(2026, 3, 20, tzinfo=timezone.utc)
     items = store.get_recent_items("AAPL", since=since, limit=50)
     assert len(items) == 3
+    assert items
+    expected_avg_confidence = round(statistics.fmean(float(item["confidence"]) for item in items), 4)
+    assert model_metrics["average_confidence"] == pytest.approx(expected_avg_confidence)
     assert {i["url"] for i in items} == {
         "https://example.com/aapl-soar",
         "https://example.com/aapl-lawsuit",
@@ -138,4 +142,7 @@ def test_refresh_logs_governance_run_stats(tmp_path: Path):
     assert stats["items_scored"] == 3
     assert stats["items_inserted"] == 3
     assert stats["topics_without_data"] == 0
-    assert 0.0 <= stats["average_model_confidence"] <= 1.0
+    items = store.get_recent_items("AAPL", since=datetime(2026, 3, 20, tzinfo=timezone.utc), limit=50)
+    assert items
+    expected_avg_confidence = round(statistics.fmean(float(item["confidence"]) for item in items), 4)
+    assert stats["average_model_confidence"] == pytest.approx(expected_avg_confidence)
