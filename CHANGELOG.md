@@ -7,6 +7,7 @@
 - Added deployment, demo, and API docs.
 - Added scripts for local running and snapshot export.
 - Clarified the health payload and production deployment settings.
+- Cleaned up the recruiter-facing README and dashboard controls.
 
 - History polish checkpoint 01.
 - History polish checkpoint 02.
