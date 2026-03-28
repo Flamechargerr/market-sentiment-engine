@@ -10,6 +10,12 @@ The app is intentionally split into three layers:
 
 `core/sentiment_store.py` stores scored items and snapshot history in SQLite.
 
+Every refresh also records governance and quality-monitoring metadata:
+
+- per-topic ingestion quality diagnostics (`fetched_item_count`, dedupe counts/ratio, source errors)
+- per-topic model metrics (confidence summary and class distribution)
+- run-level reproducibility stats in `sentiment_runs.stats_json` (topics requested, inserted/scored totals, average confidence)
+
 ## 3. Presentation
 
 `app.py` and the templates expose the dashboard and JSON API.
